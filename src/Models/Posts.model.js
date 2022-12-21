@@ -1,7 +1,7 @@
 const { model, Schema } = require("mongoose");
 const postsSchema = new Schema({
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: "users",
     required: true,
   },
