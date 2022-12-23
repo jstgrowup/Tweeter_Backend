@@ -5,4 +5,19 @@ cloudinary.config({
   api_key: process.env.CLOUD_API_KEY,
   api_secret: process.env.CLOUD_API_SECRET,
 });
-module.exports = { cloudinary };
+const opts = {
+  overwrite: true,
+  invalidate: true,
+  resource_type: "auto",
+};
+const uploadImage = (image) => {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload(image, opts, (error, result) => {
+      if (result && result.secure_url) {
+        return resolve(result.secure_url);
+      }
+      return reject({ message: error.message });
+    });
+  });
+};
+module.exports = uploadImage;
