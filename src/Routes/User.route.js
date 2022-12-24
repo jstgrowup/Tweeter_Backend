@@ -38,7 +38,6 @@ app.post("/login", async (req, res) => {
 });
 app.post("/getuser", async (req, res) => {
   const { id } = req.body;
-  console.log("id:", id);
 
   try {
     const respo = await userModel.findOne({ _id: id });
