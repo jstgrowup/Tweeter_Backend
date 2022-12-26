@@ -2,19 +2,19 @@ const express = require("express");
 const userModel = require("../Models/User.model");
 const app = express.Router();
 app.post("/postUser", async (req, res) => {
-  //   const { email } = req.body;
-  //   console.log('req:', req.body)
-  //   const data = await userModel.findOne({ email: email });
+  const { email } = req.body;
 
-  try {
-    // if (data) {
-    //   res.status(401).send("User already exists");
-    // } else {
-    const huru = await userModel.create(req.body);
-    res.send(huru);
-    // }
-  } catch (error) {
-    res.status(401).send(error.message);
+  const data = await userModel.findOne({ email: email });
+
+  if (data) {
+    res.status(401).send("User already exists please log in");
+  } else {
+    try {
+      const huru = await userModel.create(req.body);
+      res.send(huru);
+    } catch (error) {
+      res.status(401).send(error.message);
+    }
   }
 });
 app.post("/login", async (req, res) => {
