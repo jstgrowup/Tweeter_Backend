@@ -5,7 +5,6 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const jwtkey = process.env.JWT_KEY;
 
-
 app.post("/postUser", async (req, res) => {
   const { email } = req.body;
   const data = await userModel.findOne({ email: email });
@@ -29,24 +28,21 @@ app.post("/login", async (req, res) => {
   });
   try {
     if (!data.username) {
-      res.status(401).send("User not Signed up");
+      res.status(401).send("You dont have an account please create an account");
     } else {
       const { _id } = data;
       const token = jwt.sign({ id: _id }, jwtkey, { expiresIn: "365d" });
-  
-     
 
       res.send({ token: token });
     }
   } catch (error) {
-    res.status(401).send(error.message);
+    res.status(401).send("You dont have an account please create an account");
   }
 });
 app.post("/getuser", async (req, res) => {
   const { token } = req.body;
-
   const check = jwt.verify(token, jwtkey);
- 
+
   try {
     const respo = await userModel.findOne({ _id: check.id });
 
@@ -54,7 +50,6 @@ app.post("/getuser", async (req, res) => {
   } catch (error) {
     res.status(404).send(error.message);
   }
-
 });
 app.patch("/updateUser/:id", async (req, res) => {
   const { id } = req.params;
@@ -64,9 +59,18 @@ app.patch("/updateUser/:id", async (req, res) => {
       { _id: id },
       { $set: { fullname: fullname, email: email, password: password } }
     );
-   
 
     res.send(data);
+  } catch (error) {
+    res.status(401).send(error.message);
+  }
+});
+app.post("/delete", async (req, res) => {
+  const { id } = req.body;
+  try {
+    await userModel.findByIdAndDelete({ _id: id });
+
+    res.send("Deleted Successfully");
   } catch (error) {
     res.status(401).send(error.message);
   }
