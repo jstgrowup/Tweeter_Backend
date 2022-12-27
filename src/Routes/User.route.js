@@ -58,7 +58,7 @@ app.patch("/updateUser/:id", async (req, res) => {
       { _id: id },
       { $set: { fullname: fullname, email: email, password: password } }
     );
-    console.log("data:", data);
+   
 
     res.send(data);
   } catch (error) {
