@@ -33,6 +33,7 @@ app.post("/login", async (req, res) => {
     } else {
       const { _id } = data;
       const token = jwt.sign({ id: _id }, jwtkey, { expiresIn: "365d" });
+  
      
 
       res.send({ token: token });
@@ -53,7 +54,7 @@ app.post("/getuser", async (req, res) => {
   } catch (error) {
     res.status(404).send(error.message);
   }
-  
+
 });
 app.patch("/updateUser/:id", async (req, res) => {
   const { id } = req.params;

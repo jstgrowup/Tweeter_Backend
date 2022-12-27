@@ -1,7 +1,9 @@
 const express = require("express");
 const postModel = require("../Models/Posts.model");
 // const uploadImage = require("../utils/Cloudinary");
-
+const jwt = require("jsonwebtoken");
+require("dotenv").config();
+const jwtkey = process.env.JWT_KEY;
 const app = express.Router();
 
 app.get("/", async (req, res) => {
@@ -12,10 +14,20 @@ app.get("/", async (req, res) => {
     res.status(404).send(error.message);
   }
 });
+app.post("/getUsersPosts", async (req, res) => {
+  try {
+    const { token } = req.body;
+    const check = jwt.verify(token, jwtkey);
+    const respo = await postModel.find({ userId: check.id });
+    res.send(respo);
+  } catch (error) {
+    res.status(404).send(error.message);
+  }
+});
+
 app.post("/createPost", async (req, res) => {
   try {
     const repo = await postModel.create(req.body);
-
     res.send(repo);
   } catch (error) {
     res.status(404).send(error.message);
