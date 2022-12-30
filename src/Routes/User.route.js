@@ -29,7 +29,7 @@ app.post("/postUser", async (req, res) => {
     });
     const url = `${process.env.BASE_URL}users/${huru._id}/verify/${token.token}`;
     await sendEmail(huru.email, "Verify email", url);
-    res.send({ data: huru, message: "An email has been sent to your email" });
+    res.send({ message: "An email has been sent to your email" });
   } catch (error) {
     console.log("error:", error);
     res
@@ -66,27 +66,43 @@ app.get("/:id/verify/:token", async (req, res) => {
 });
 
 app.post("/login", async (req, res) => {
-  const { email } = req.body;
+  const { email, password } = req.body;
   try {
     const { error } = loginvalidate(req.body);
-
     if (error) {
       return res.status(401).send({ message: error.details[0].message });
     }
     const data = await userModel.findOne({
       email: email,
+      password: password,
     });
-
-    if (!data.email) {
-      return res
-        .status(401)
-        .send({ message: "You dont have an account please create an account" });
+    if (!data) {
+      return res.status(401).send({
+        message: "User Does not exists please create an account",
+      });
+    }
+    if (!data.verfied) {
+      const token = await tokenModel.findOne({ userId: data._id });
+      if (!token) {
+        const newtoken = await tokenModel.create({
+          userId: data._id,
+          token: crypto.randomBytes(32).toString("hex"),
+        });
+        const url = `${process.env.BASE_URL}users/${data._id}/verify/${newtoken.token}`;
+        await sendEmail(data.email, "Verify email", url);
+      }
+      return res.status(401).send({
+        data: data,
+        message:
+          "Email has been sent to your gmail account after verifying try logging in again",
+      });
     }
     const { _id } = data;
     const token = jwt.sign({ id: _id }, jwtkey, { expiresIn: "7d" });
-    res.send({ token: token, message: "User Logged in successfully" });
+
+    res.status(200).send({ token: token, message: "Log in successfull" });
   } catch (error) {
-    res.status(500).send({ message: "internal server error" });
+    res.status(500).send({ message: "Internal server error" });
   }
 });
 app.post("/getuser", async (req, res) => {
@@ -95,8 +111,14 @@ app.post("/getuser", async (req, res) => {
 
   try {
     const respo = await userModel.findOne({ _id: check.id });
-
-    res.send(respo);
+    const updated = {
+      _id: respo._id,
+      username: respo.username,
+      email: respo.email,
+      fullname: respo.fullname,
+      img: respo.img,
+    };
+    res.send(updated);
   } catch (error) {
     res.status(404).send(error.message);
   }

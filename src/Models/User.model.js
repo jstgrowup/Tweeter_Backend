@@ -1,5 +1,5 @@
 const { model, Schema } = require("mongoose");
-const jwt = require("jsonwebtoken");
+
 require("dotenv").config();
 
 const userSchema = new Schema(
