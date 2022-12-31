@@ -31,7 +31,7 @@ app.post("/postUser", async (req, res) => {
     await sendEmail(huru.email, "Verify email", url);
     res.send({ message: "An email has been sent to your email" });
   } catch (error) {
-    console.log("error:", error);
+  
     res
       .status(401)
       .send({ message: "Internal server error please try again later" });
