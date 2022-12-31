@@ -7,7 +7,7 @@ const crypto = require("crypto");
 const jwtkey = process.env.JWT_KEY;
 const validate = require("../config/Validate");
 const loginvalidate = require("../config/LoginValidate");
-const tokenModel = require("../Models/Token");
+const tokenModel = require("../Models/Token.model");
 const sendEmail = require("../utils/sendEmail");
 app.post("/postUser", async (req, res) => {
   try {
@@ -46,16 +46,19 @@ app.get("/:id/verify/:token", async (req, res) => {
     if (!data) {
       return res.status(401).send({ message: "Invalid link" });
     }
-    const newtoken = await tokenModel.findOne({ userId: id, token: token });
+    const exixtingtoken = await tokenModel.findOne({
+      userId: id,
+      token: token,
+    });
 
-    if (!newtoken) {
+    if (!exixtingtoken) {
       return res.status(401).send({ message: "Invalid link" });
     }
     await userModel.findOneAndUpdate(
       { _id: data._id },
       { $set: { verfied: true } }
     );
-    await newtoken.remove();
+    await exixtingtoken.remove();
     res.send({ message: "Email Verified successfully" });
   } catch (error) {
     console.log("error:", error);
@@ -92,7 +95,6 @@ app.post("/login", async (req, res) => {
         await sendEmail(data.email, "Verify email", url);
       }
       return res.status(401).send({
-        data: data,
         message:
           "Email has been sent to your gmail account after verifying try logging in again",
       });
