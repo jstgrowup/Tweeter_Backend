@@ -3,12 +3,11 @@ const userModel = require("../Models/User.model");
 const app = express.Router();
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const crypto = require("crypto");
-const jwtkey = process.env.JWT_KEY;
 const validate = require("../config/Validate");
 const loginvalidate = require("../config/LoginValidate");
-const tokenModel = require("../Models/Token.model");
-const sendEmail = require("../utils/sendEmail");
+// const tokenModel = require("../Models/Token.model");
+// const sendEmail = require("../utils/sendEmail");
+const bycrypt = require("bcrypt");
 app.post("/postUser", async (req, res) => {
   try {
     const { error } = validate(req.body);
@@ -21,47 +20,16 @@ app.post("/postUser", async (req, res) => {
         .status(401)
         .send({ message: "User already exists please log in" });
     }
-    const huru = await userModel.create(req.body);
+    const salt = await bycrypt.genSalt(Number(process.env.SALT));
+    const hashPassword = await bycrypt.hash(req.body.password, salt);
 
-    const token = await tokenModel.create({
-      userId: huru._id,
-      token: crypto.randomBytes(32).toString("hex"),
-    });
-    const url = `${process.env.BASE_URL}users/${huru._id}/verify/${token.token}`;
-    await sendEmail(huru.email, "Verify email", url);
-    res.send({ message: "An email has been sent to your email" });
-  } catch (error) {
-  
-    res
-      .status(401)
-      .send({ message: "Internal server error please try again later" });
-  }
-});
-app.get("/:id/verify/:token", async (req, res) => {
-  const { id, token } = req.params;
-
-  try {
-    const data = await userModel.findOne({ _id: id });
-
-    if (!data) {
-      return res.status(401).send({ message: "Invalid link" });
-    }
-    const exixtingtoken = await tokenModel.findOne({
-      userId: id,
-      token: token,
+    await userModel.create({
+      ...req.body,
+      password: hashPassword,
     });
 
-    if (!exixtingtoken) {
-      return res.status(401).send({ message: "Invalid link" });
-    }
-    await userModel.findOneAndUpdate(
-      { _id: data._id },
-      { $set: { verfied: true } }
-    );
-    await exixtingtoken.remove();
-    res.send({ message: "Email Verified successfully" });
+    res.send({ message: "User Created Successfully" });
   } catch (error) {
-    console.log("error:", error);
     res
       .status(401)
       .send({ message: "Internal server error please try again later" });
@@ -77,50 +45,47 @@ app.post("/login", async (req, res) => {
     }
     const data = await userModel.findOne({
       email: email,
-      password: password,
     });
     if (!data) {
       return res.status(401).send({
         message: "User Does not exists please create an account",
       });
     }
-    if (!data.verfied) {
-      const token = await tokenModel.findOne({ userId: data._id });
-      if (!token) {
-        const newtoken = await tokenModel.create({
-          userId: data._id,
-          token: crypto.randomBytes(32).toString("hex"),
-        });
-        const url = `${process.env.BASE_URL}users/${data._id}/verify/${newtoken.token}`;
-        await sendEmail(data.email, "Verify email", url);
-      }
-      return res.status(401).send({
-        message:
-          "Email has been sent to your gmail account after verifying try logging in again",
-      });
-    }
-    const { _id } = data;
-    const token = jwt.sign({ id: _id }, jwtkey, { expiresIn: "7d" });
+    const isVerified = await bycrypt.compare(password, data.password);
 
-    res.status(200).send({ token: token, message: "Log in successfull" });
+    if (!isVerified) {
+      return res.status(401).send({ message: "Invalid or Wrong Password" });
+    }
+    const updated = {
+      _id: data._id,
+      username: data.username,
+      email: data.email,
+      img: data.img,
+    };
+    const payload = { data: updated };
+    const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_KEY, {
+      expiresIn: "30d",
+    });
+
+    res.status(200).send({
+      token: accessToken,
+      message: "Log in successfull",
+    });
   } catch (error) {
     res.status(500).send({ message: "Internal server error" });
   }
 });
 app.post("/getuser", async (req, res) => {
   const { token } = req.body;
-  const check = jwt.verify(token, jwtkey);
 
   try {
-    const respo = await userModel.findOne({ _id: check.id });
-    const updated = {
-      _id: respo._id,
-      username: respo.username,
-      email: respo.email,
-      fullname: respo.fullname,
-      img: respo.img,
-    };
-    res.send(updated);
+    jwt.verify(token, process.env.ACCESS_TOKEN_KEY, (err, details) => {
+      if (err) {
+        return res.status(401).send("Invalid refresh token");
+      }
+      const { data } = details;
+      return res.status(201).send({ data: data, message: "Valid User" });
+    });
   } catch (error) {
     res.status(404).send(error.message);
   }

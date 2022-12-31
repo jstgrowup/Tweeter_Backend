@@ -9,8 +9,8 @@ const TokenSchema = new Schema(
       ref: "users",
       required: true,
     },
-    token: { required: true, type: String },
-    created: { type: Date, default: Date.now(), expires: 3600 },
+    refreshtoken: { required: true, type: String },
+    created: { type: Date, default: Date.now(), expires: 30 * 86400 },
   },
   {
     versionKey: false,
